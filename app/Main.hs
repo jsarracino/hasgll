@@ -1,8 +1,9 @@
 module Main where
 
-import Parser
+import Parser ( program )
+import Grammar ( pp )
 
 main :: IO ()
 main = do 
   lne <- getLine
-  print $ (parse . lexer) lne
+  print $ (pp . program) lne

@@ -3,6 +3,7 @@ module Parser where
 
 import qualified Grammar as G
 import Data.Char
+import qualified Data.Map.Strict as Map
 }
 
 %name parse
@@ -58,16 +59,18 @@ lexer ('(':cs) = TokenLP : lexer cs
 lexer (')':cs) = TokenRP : lexer cs
 lexer (';':cs) = TokenSemi : lexer cs
 lexer ('\\':'e':cs) = TokenEps : lexer cs
-lexer ('\'':c:cs) = TokenChar c : lexer cs
 lexer (c:cs) 
   | isSpace c = lexer cs
   | isUpper c = lexVar (c:cs)
-  | otherwise = error $ "unhandled char " ++ [c]
+  | otherwise = TokenChar c : lexer cs
 
 lexVar cs = case span isAlpha cs of
   (var,rest)   -> TokenVar var : lexer rest
 
 parseError :: [Token] -> a
 parseError _ = error "Parse error"
+
+program :: String -> G.Grammar
+program = Map.fromList . parse . lexer
 
 }
