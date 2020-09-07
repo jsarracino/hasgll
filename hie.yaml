@@ -1,0 +1,10 @@
+cradle:
+  stack:
+    - path: "./src"
+      component: "hasgll:lib"
+
+    - path: "./app/Main.hs"
+      component: "hasgll:exe:hasgll-exe"
+
+    - path: "./test"
+      component: "hasgll:test:hasgll-test"
