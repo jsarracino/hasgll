@@ -16,31 +16,41 @@ The interpreter takes BNF grammars with semicolon separated definitions as input
 as well as a starting production. The empty string is denoted by '\e' and alternation by '|'. 
 
 Next it loops on input strings
-and parses them against the grammar and starting production. The empty string behavior is a bit buggy.
+and parses them against the grammar and starting production.
 For example:
 
 ```
 john@MacBook-Pro-227 hasgll % stack run hasgll-exe                            
 input grammar:
-A ::= a A | \e | B ; B ::= b
-grammar is A ::= a A | \e | B ; B ::= b
+A ::= A a | \e | B ; B ::= b
+grammar is A ::= A a | \e | B ; B ::= b
 input starting production:
 A
 input string to parse (control-C to quit)
 aaaa
-parsed to []
+parsed to [([Atm (Chr 'a'),Atm (Chr 'a'),Atm (Chr 'a'),Atm (Chr 'a')],([],fromList []))]
 aaa
-parsed to []
+parsed to [([Atm (Chr 'a'),Atm (Chr 'a'),Atm (Chr 'a')],([],fromList []))]
 aa
-parsed to []
+parsed to [([Atm (Chr 'a'),Atm (Chr 'a')],([],fromList []))]
 a
-parsed to []
+parsed to [([Atm (Chr 'a')],([],fromList []))]
 b
-parsed to [([Chr 'b'],fromList [("B",0)])]
+parsed to [([Atm (Chr 'b')],([],fromList []))]
 ab
-parsed to [([Chr 'a',Chr 'b'],fromList [("A",1),("B",1)])]
-aab
-parsed to [([Chr 'a',Chr 'a',Chr 'b'],fromList [("A",1),("A",2),("B",2)])]
+parsed to []
+ba
+parsed to [([Atm (Chr 'b'),Atm (Chr 'a')],([],fromList []))]
+bbbbaaaaa
+parsed to []
+bbbaaa
+parsed to []
+bbaa
+parsed to []
+ba
+parsed to [([Atm (Chr 'b'),Atm (Chr 'a')],([],fromList []))]
+baaaaa
+parsed to [([Atm (Chr 'b'),Atm (Chr 'a'),Atm (Chr 'a'),Atm (Chr 'a'),Atm (Chr 'a'),Atm (Chr 'a')],([],fromList []))]
 
-parsed to [([Eps],fromList []),([Eps],fromList [])]
+parsed to [([],([],fromList [])),([Atm Eps],([],fromList []))]
 ```

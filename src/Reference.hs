@@ -13,12 +13,11 @@ grammar1 = (start "X" , [prod "X" [nterm "X", term 'a']
                       , prod "X" [term 'a']
                  ] )
 
-fail1       = "a"
-success1    = "aa"
-success2    = "aaa"
-fail2       = "aaaaa"
+success1       = "a"
+fail1    = "aa"
 
 foo :: ParseResult Char
 foo = parse grammar1 fail1
 
+bar :: [Char] -> ParseResult Char
 bar = parse grammar1
