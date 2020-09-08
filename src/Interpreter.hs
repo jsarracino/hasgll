@@ -31,9 +31,7 @@ growDeriv str prods depth (sent, calls) = case sent of
           then map (expand (Chr c)) (growDeriv cs prods (depth + 1) (sent', calls)) 
           else []
   (Var v :sent') -> 
-    if S.member (v, depth) calls 
-      then [] 
-      else [(pref ++ sent', (v, depth) `S.insert` calls) | pref <- (M.!) prods v]
+    [(pref ++ sent', (v, depth) `S.insert` calls) | pref <- (M.!) prods v, checkSentenceConserv depth str (pref ++ sent', calls)]
 
   where
     expand :: Atom -> Derivation -> Derivation
@@ -60,7 +58,7 @@ checkSentenceExact str sent = case (str, sent) of
   (_, Var _ : _) -> False
 
 growSentences :: String -> Grammar -> Forest -> Forest
-growSentences str g states = S.fromList $ filter (checkSentenceConserv 0 str) $ (S.toList states) >>= (growDeriv str g 0)
+growSentences str g states = S.fromList $ (S.toList states) >>= (growDeriv str g 0)
 
 sentences :: Forest -> [Sentence]
 sentences states = map fst $ S.toList states
