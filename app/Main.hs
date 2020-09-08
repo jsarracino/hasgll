@@ -2,7 +2,8 @@ module Main where
 
 import Parser ( program )
 import Grammar ( pp, Grammar )
-import Interpreter (parses)
+-- import Interpreter (parses)
+import FancyInterp (parses)
 
 -- import qualified Data.Set as S
 

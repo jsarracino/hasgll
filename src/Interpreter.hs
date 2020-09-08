@@ -1,6 +1,8 @@
 module Interpreter (
     initForest
-  , growDeriv
+  -- , growDeriv
+  , growDerivEmpties
+  , growDerivCallsite
   , checkSentenceConserv
   , checkSentenceExact
   , CallCache
@@ -9,6 +11,7 @@ module Interpreter (
   , growSentences
   , sentences
   , parses
+  , exceedsStr
 ) where
 
 import qualified Data.Set as S
@@ -19,25 +22,46 @@ type CallCache = S.Set (String, Int)
 
 type Derivation = (Sentence, CallCache)
 
-growDeriv :: String -> Grammar -> Int -> Derivation -> [Derivation]
-growDeriv str prods depth (sent, calls) = case sent of 
+growDerivCallsite :: String -> Grammar -> Int -> Derivation -> [Derivation]
+growDerivCallsite str prods depth (sent, calls) = case sent of 
   [] -> [([], calls)]
-  (Eps :sent') -> map (expand Eps) (growDeriv str prods depth (sent', calls))
+  (Eps :sent') -> map (expand Eps) (growDerivCallsite str prods depth (sent', calls))
   (Chr c : sent') -> 
     case str of 
       [] -> []
       (c' : cs) -> 
         if c == c' 
-          then map (expand (Chr c)) (growDeriv cs prods (depth + 1) (sent', calls)) 
+          then map (expand (Chr c)) (growDerivCallsite cs prods (depth + 1) (sent', calls)) 
           else []
   (Var v :sent') -> 
     [(pref ++ sent', (v, depth) `S.insert` calls) | pref <- (M.!) prods v, checkSentenceConserv depth str (pref ++ sent', calls)]
 
-  where
-    expand :: Atom -> Derivation -> Derivation
-    expand h (s, c) = (h : s, c)
+type EmptyDeriv = (Sentence, S.Set String)
 
-type Forest = S.Set Derivation
+growDerivEmpties :: String -> Grammar -> EmptyDeriv -> [EmptyDeriv]
+growDerivEmpties str prods (sent, empties) = case sent of 
+  [] -> [([], empties)]
+  (Eps :sent') -> map (expand Eps) (growDerivEmpties str prods (sent', empties))
+  (Chr c : sent') -> 
+    case str of 
+      [] -> []
+      (c' : cs) -> 
+        if c == c' 
+          then map (expand (Chr c)) (growDerivEmpties cs prods (sent', empties)) 
+          else []
+  (Var v :sent') -> 
+    [ (pref ++ sent', (if hasEmpty pref then S.singleton v else S.empty) `S.union` empties) 
+      | pref <- (M.!) prods v, 
+        if S.member v empties then not $ hasEmpty pref else True,
+        not $ exceedsStr str (pref ++ sent')
+    ]
+
+expand :: Atom -> (Sentence, a) -> (Sentence, a)
+expand h (s, c) = (h : s, c)
+
+hasEmpty :: Sentence -> Bool
+hasEmpty (Eps : _) = True
+hasEmpty _ = False
 
 checkSentenceConserv :: Int -> String -> Derivation -> Bool
 checkSentenceConserv _ [] ([], _) = True
@@ -60,8 +84,22 @@ checkSentenceExact str sent = case (str, sent) of
   (_, Var _ : _) -> False
   
 
+emptyLength :: S.Set String -> Sentence -> Int
+emptyLength empties sent = case sent of 
+  [] -> 0
+  Eps : tl -> emptyLength empties tl
+  Chr c : tl -> 1 + emptyLength empties tl
+  Var v : tl -> (if S.member v empties then 1 else 0) + emptyLength (v `S.insert` empties) tl
+
+exceedsStr :: String -> Sentence -> Bool
+exceedsStr str sent = 
+  emptyLength S.empty sent > length str
+
+-- type Forest = S.Set Derivation
+type Forest = S.Set EmptyDeriv
+
 growSentences :: String -> Grammar -> Forest -> Forest
-growSentences str g states = S.fromList $ (S.toList states) >>= (growDeriv str g 0)
+growSentences str g states = S.fromList $ (S.toList states) >>= (growDerivEmpties str g)
 
 sentences :: Forest -> [Sentence]
 sentences states = map fst $ S.toList states
@@ -69,7 +107,7 @@ sentences states = map fst $ S.toList states
 initForest :: String -> Grammar -> Forest
 initForest v prods = S.fromList $ map (\s -> (s, S.empty)) $ (M.!) prods v
 
-matches :: String -> Grammar -> Int -> Forest -> S.Set (Derivation, Int)
+matches :: String -> Grammar -> Int -> Forest -> S.Set (EmptyDeriv, Int)
 matches str g x forest = S.map (\m -> (m, x)) matchedSents `S.union` remainder
   where
     matchedSents = S.filter (checkSentenceExact str . fst) forest
@@ -77,5 +115,5 @@ matches str g x forest = S.map (\m -> (m, x)) matchedSents `S.union` remainder
       if nxt == forest then S.map (\m -> (m, x)) (S.filter (checkSentenceExact str . fst) forest) else matches str g (x + 1) nxt
 
 -- partial
-parses :: String -> Grammar -> String -> [(Derivation, Int)]
+parses :: String -> Grammar -> String -> [(EmptyDeriv, Int)]
 parses start g str = S.toList $ matches str g 0 (initForest start g)

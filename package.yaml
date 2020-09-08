@@ -26,6 +26,7 @@ dependencies:
 - parsec >= 3
 - pretty
 - array
+- gll
 
 library:
   source-dirs: src
