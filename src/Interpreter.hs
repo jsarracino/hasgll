@@ -52,10 +52,13 @@ checkSentenceConserv idx (c : cs) (sent, expanded) = case sent of
 checkSentenceExact :: String -> Sentence -> Bool
 checkSentenceExact str sent = case (str, sent) of 
   ([], []) -> True
-  (_, []) -> False
+  ([], Eps : sent') -> checkSentenceExact [] sent'
+  ([], _) -> False
+  (_ : _, []) -> False
   (c : cs, Chr c' : sent') -> if c == c' then checkSentenceExact cs sent' else False
   (c : cs, Eps : sent') -> checkSentenceExact (c : cs) sent'
   (_, Var _ : _) -> False
+  
 
 growSentences :: String -> Grammar -> Forest -> Forest
 growSentences str g states = S.fromList $ (S.toList states) >>= (growDeriv str g 0)
