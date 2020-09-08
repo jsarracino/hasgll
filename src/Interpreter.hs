@@ -71,7 +71,7 @@ matches str g x forest = S.map (\m -> (m, x)) matchedSents `S.union` remainder
   where
     matchedSents = S.filter (checkSentenceExact str . fst) forest
     remainder = let nxt = growSentences str g forest in
-      if nxt == forest then S.map (\m -> (m, x)) forest else matches str g (x + 1) nxt
+      if nxt == forest then S.map (\m -> (m, x)) (S.filter (checkSentenceExact str . fst) forest) else matches str g (x + 1) nxt
 
 -- partial
 parses :: String -> Grammar -> String -> [(Derivation, Int)]
