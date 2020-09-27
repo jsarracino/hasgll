@@ -27,6 +27,9 @@ dependencies:
 - pretty
 - array
 - gll
+- Earley
+- ListLike
+- antlr-haskell
 
 library:
   source-dirs: src

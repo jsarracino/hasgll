@@ -1,4 +1,4 @@
-module Reference (
+module Backend.GLL (
     foo
   , bar
 ) where

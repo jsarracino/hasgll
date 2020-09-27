@@ -1,8 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.2.
+-- This file has been generated from package.yaml by hpack version 0.33.0.
 --
 -- see: https://github.com/sol/hpack
+--
+-- hash: acd9ce6c8424d76daa37e3da5950d98b715c1e3b9d8f917d114f45c63aa75e42
 
 name:           hasgll
 version:        0.1.0.0
@@ -26,18 +28,24 @@ source-repository head
 
 library
   exposed-modules:
+      Backend
+      Backend.ANTLR
+      Backend.Earley
+      Backend.GLL
       FancyInterp
       Grammar
       Interpreter
       Lib
       Parser
-      Reference
   other-modules:
       Paths_hasgll
   hs-source-dirs:
       src
   build-depends:
-      array
+      Earley
+    , ListLike
+    , antlr-haskell
+    , array
     , base >=4.7 && <5
     , containers
     , gll
@@ -53,7 +61,10 @@ executable hasgll-exe
       app
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      array
+      Earley
+    , ListLike
+    , antlr-haskell
+    , array
     , base >=4.7 && <5
     , containers
     , gll
@@ -71,7 +82,10 @@ test-suite hasgll-test
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      array
+      Earley
+    , ListLike
+    , antlr-haskell
+    , array
     , base >=4.7 && <5
     , containers
     , gll
