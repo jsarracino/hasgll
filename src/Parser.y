@@ -53,6 +53,7 @@ data Token =
 
 lexer :: String -> [Token]
 lexer [] = []
+lexer ('\\':c:cs) = TokenChar c : lexer cs
 lexer (':':':':'=':cs) = TokenDef : lexer cs
 lexer ('|':cs) = TokenAlt : lexer cs
 lexer ('(':cs) = TokenLP : lexer cs

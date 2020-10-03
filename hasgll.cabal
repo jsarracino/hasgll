@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: acd9ce6c8424d76daa37e3da5950d98b715c1e3b9d8f917d114f45c63aa75e42
+-- hash: 8764871fe7af0dec4bb0f6500e9042f82ac5e26b463885975e8ee9acb6cabf25
 
 name:           hasgll
 version:        0.1.0.0
@@ -36,6 +36,7 @@ library
       Grammar
       Interpreter
       Lib
+      Logic
       Parser
   other-modules:
       Paths_hasgll

@@ -8,7 +8,10 @@ import Backend.Earley
 
 -- import qualified Data.Set as S
 
-expr = program "E ::= 1 | E + E"
+expr = program "Expr ::= 1 | Expr + Expr | Expr * Expr"
+expr_left = program "Expr ::= 1 | 1 + Expr | 1 * Expr "
+expr_parens = program "Expr ::= 1 | Expr + Expr | Expr * Expr | \\( Expr \\)"
+expr_factored = program "Expr ::= Expr + Term | Term ; Term ::= Term * Factor | Factor ; Factor ::= 1 | \\( Expr \\)"
 
 -- main :: IO ()
 -- main = do 
@@ -19,6 +22,7 @@ expr = program "E ::= 1 | E + E"
 --   start <- getLine
 --   putStrLn "input string to parse (control-C to quit)"
 --   loopParse start (program gram)
+
 
 loopParse :: String -> Grammar -> IO ()
 loopParse start gram = do 
