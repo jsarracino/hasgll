@@ -1,6 +1,11 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Logic (
     subset
   , equality
+  , fuzzDepth
+  , replaceVars
+  , fuzz
 ) where
 
 import Grammar
@@ -8,6 +13,7 @@ import Backend.Earley ( buildEarley, recognize )
 import qualified Text.Earley as E
 import qualified Data.Map.Strict as Map
 import Data.Maybe
+import Control.Monad
 
 tokens :: Grammar -> [Char]
 tokens g = Map.elems g >>= (\e -> e >>= (mapMaybe worker))
@@ -16,7 +22,32 @@ tokens g = Map.elems g >>= (\e -> e >>= (mapMaybe worker))
     worker _ = Nothing
 
 fuzz :: Grammar -> String -> [String]
-fuzz g start =  map snd $ take 1000 $ E.language (E.generator (buildEarley g start) (tokens g))
+fuzz g start = take 100000 $ fuzzDepth g start 3
+
+takeTerms :: [Sentence] -> [Sentence]
+takeTerms alts = filter (all isTerm) alts
+  where
+    isTerm (Var _) = False
+    isTerm _ = True
+
+replaceVars :: Map.Map String [String] -> [Sentence] -> [String]
+replaceVars env sents = join $ map (foldl combine [[]]) sents
+  where
+    combine :: [String] -> Atom -> [String]
+    combine ss nxt = [t ++ res | t <- ss, res <- worker nxt]
+
+    worker (Var v) = (Map.!) env v
+    worker Eps = []
+    worker (Chr c) = [[c]]
+
+fuzzDepth :: Grammar -> String -> Int -> [String]
+fuzzDepth g start n
+  | n == 0  = replaceVars Map.empty $ takeTerms ((Map.!) g start)
+  | n > 0   = 
+    let prevs = Map.fromList $ map (\s -> (s, fuzzDepth g s (n-1))) (Map.keys g) in
+      replaceVars prevs $ (Map.!) g start
+
+  | n < 0   = error "bad depth argument to fuzzDepth"
 
 -- compare two grammars for a subset relation, and return:
   -- Left () if the LHS appears to be a subset of the RHS

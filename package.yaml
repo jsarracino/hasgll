@@ -30,6 +30,8 @@ dependencies:
 - Earley
 - ListLike
 - antlr-haskell
+- grammatical-parsers
+- rank2classes
 
 library:
   source-dirs: src
