@@ -5,11 +5,13 @@ import Grammar ( pp, Grammar )
 -- import Interpreter (parses)
 import FancyInterp (parses)
 import Backend.Earley
+import Backend.PEG
 
 -- import qualified Data.Set as S
 
 expr = program "Expr ::= 1 | Expr + Expr | Expr * Expr"
 expr_left = program "Expr ::= 1 | 1 + Expr | 1 * Expr "
+expr_left_peg = program "Expr ::= 1 + Expr | 1 |  1 * Expr "
 expr_parens = program "Expr ::= 1 | Expr + Expr | Expr * Expr | \\( Expr \\)"
 expr_factored = program "Expr ::= Expr + Term | Term ; Term ::= Term * Factor | Factor ; Factor ::= 1 | \\( Expr \\)"
 
