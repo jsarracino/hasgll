@@ -6,7 +6,8 @@ import Data.Char
 import qualified Data.Map.Strict as Map
 }
 
-%name parse
+%name parse Def
+%name sent Sentence
 %tokentype { Token }
 %error { parseError }
 
@@ -73,5 +74,8 @@ parseError _ = error "Parse error"
 
 program :: String -> G.Grammar
 program = Map.fromList . parse . lexer
+
+sentence :: String -> G.Sentence
+sentence = sent . lexer
 
 }

@@ -8,10 +8,13 @@ module Logic (
   , fuzz
   , fuzzPEG
   , replaceVarsPEG
+  , cfg2PEG
 ) where
 
 import Grammar
 import Backend.Earley ( buildEarley, recognize )
+import Backend.PEG (recogFailPoint)
+import Output.PEG
 import Backend.Grampa
 import qualified Text.Earley as E
 import qualified Data.Map.Strict as Map
@@ -19,6 +22,14 @@ import Data.Maybe
 import Control.Monad
 import qualified Backend.PEG as PEG
 import Data.List
+import Data.Maybe
+import Data.List
+
+import Logic.OrderPEG
+import Z3.Monad
+
+import System.IO.Unsafe
+
 
 tokens :: Grammar -> [Char]
 tokens g = Map.elems g >>= (\e -> e >>= (mapMaybe worker))
@@ -137,4 +148,58 @@ equality start l r = combiner (subset start l r) (subset start r l)
     combiner (Right cxs) (Left ()) = Right (cxs, [])
     combiner (Left ()) (Right cxs) = Right ([], cxs)
     combiner (Right cxs) (Right cxs') = Right (cxs, cxs')
+
+type FuzzConfig = (Int, Int)
+type SearchCache = [Int]
+
+fuzzWithConfig :: Grammar -> String -> FuzzConfig -> [String]
+fuzzWithConfig g s (amount, depth) = fuzzDepth g s depth
+
+readOrd :: String -> Maybe Ordering
+readOrd = read
+
+checkOneProd :: Grammar -> String -> FuzzConfig -> [(Int, String)]
+checkOneProd g start config = let good = fuzzWithConfig g start config in 
+  catMaybes $ map (recogFailPoint g start) good 
+
+completeProduction :: Grammar -> String -> IO (Maybe Grammar)
+completeProduction g p = let ordW = foldM worker Map.empty (genCounters g) in do
+  ord <- ordW
+  (_, out) <- evalZ3 $ rewriteGram g ord
+
+  case out of 
+    Just out' -> if null $ genCounters out' then completeProduction out' p else pure $ Just out'
+    Nothing   -> pure $ Nothing
+  
+
+  where
+    worker :: PickleOrd -> (Int, String) -> IO PickleOrd
+    worker ord (fp, cx) = do 
+      putStrLn $ "Found failpoint " ++ show fp ++ " on example " ++ show cx 
+      putStrLn $ "Grammar is " ++ pp g
+      putStrLn $ "Please give an ordering for " ++ show lhs ++ " compared to " ++ show rhs
+      nxtO <- readOrd <$> getLine
+      pure $ Map.insert lhs (Map.insert rhs nxtO rmap) ord
+
+      where
+
+        lhs = (Map.!) g p !! fp
+        rhs = (Map.!) g p !! (fp + 1)
+        rmap = case Map.lookup lhs ord of
+          Just t -> t
+          Nothing -> Map.empty
+    cnfg = (1000000,4)
+
+    genCounters gram = (nubBy (\l r -> fst l == fst r) $ checkOneProd gram p cnfg)
+
+
+
+cfg2PEG :: Grammar -> [String] -> IO (Maybe Grammar)
+cfg2PEG g completed = if length completed == length (Map.keys g) then pure $ Just g else do 
+  nxtG <- completeProduction g nxtProd
+  case nxtG of 
+    Just g' -> cfg2PEG g' (nxtProd : completed)
+    Nothing -> putStrLn "error: z3 query failed" >> pure Nothing
+  where
+    nxtProd = head $ Map.keys g \\ completed
 

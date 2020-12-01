@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: ec9039e02e7f515b98a2d2cf8789a35f772a4a472603bf84c6a196be1cee4621
+-- hash: a93c7a087263ac1c78d159d1cb5e1586b26d1f0d0f0a34753bb4c2d06d53535f
 
 name:           hasgll
 version:        0.1.0.0
@@ -39,6 +39,9 @@ library
       Interpreter
       Lib
       Logic
+      Logic.OrderPEG
+      Output.CFG
+      Output.PEG
       Parser
   other-modules:
       Paths_hasgll
@@ -50,12 +53,14 @@ library
     , antlr-haskell
     , array
     , base >=4.7 && <5
+    , bimap
     , containers
     , gll
     , grammatical-parsers
     , parsec >=3
     , pretty
     , rank2classes
+    , z3 >=408.2
   default-language: Haskell2010
 
 executable hasgll-exe
@@ -71,6 +76,7 @@ executable hasgll-exe
     , antlr-haskell
     , array
     , base >=4.7 && <5
+    , bimap
     , containers
     , gll
     , grammatical-parsers
@@ -78,6 +84,7 @@ executable hasgll-exe
     , parsec >=3
     , pretty
     , rank2classes
+    , z3 >=408.2
   default-language: Haskell2010
 
 test-suite hasgll-test
@@ -94,6 +101,7 @@ test-suite hasgll-test
     , antlr-haskell
     , array
     , base >=4.7 && <5
+    , bimap
     , containers
     , gll
     , grammatical-parsers
@@ -101,4 +109,5 @@ test-suite hasgll-test
     , parsec >=3
     , pretty
     , rank2classes
+    , z3 >=408.2
   default-language: Haskell2010

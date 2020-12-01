@@ -32,6 +32,8 @@ dependencies:
 - antlr-haskell
 - grammatical-parsers
 - rank2classes
+- z3 >= 408.2
+- bimap
 
 library:
   source-dirs: src

@@ -1,11 +1,10 @@
-{-# LANGUAGE TypeSynonymInstances #-}
-{-# LANGUAGE FlexibleInstances #-}
-
 module Grammar (
     Atom(..)
   , Sentence
   , Grammar
   , pp
+  , Pretty
+  , pretty
 ) where
 
 import qualified Data.Map.Strict as Map
@@ -19,24 +18,6 @@ class Pretty a where
   pp :: a -> String
   pp = PP.render . pretty
 
-instance Pretty Atom where
-  pretty (Chr c) = PP.char c
-  pretty (Eps) = PP.text "\\e"
-  pretty (Var s) = PP.text s
-
-type Sentence = [Atom]
-
-instance Pretty Sentence where
-  pretty atoms = PP.hsep $ map pretty atoms
-
 type Grammar = Map.Map String [Sentence]
 
-instance Pretty Grammar where
-  pretty prods = PP.sep $ PP.punctuate semi $ map worker $ Map.assocs prods
-    where
-      worker :: (String, [Sentence]) -> PP.Doc
-      worker (lvar, alts) = PP.text lvar PP.<+> PP.text "::=" PP.<+> (PP.sep $ PP.punctuate alt (map pretty alts))
-
-      alt = PP.text " |"
-      semi = PP.text " ;"
-
+type Sentence = [Atom]
