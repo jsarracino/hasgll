@@ -54,4 +54,4 @@ recogFailPoint g start s = foldl tryRecog Nothing $ zip ((Map.!) g start) [0..]
 matches :: Grammar -> String -> String -> Bool
 matches g start s = case recognize g start s of 
   NoParse -> False
-  Partial{} -> True
+  Partial s -> null s

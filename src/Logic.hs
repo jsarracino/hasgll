@@ -7,8 +7,14 @@ module Logic (
   , replaceVars
   , fuzz
   , fuzzPEG
+  , substProd
+  , fuzzAllProds
+  , fuzzProd
   , replaceVarsPEG
   , cfg2PEG
+  , getCounterExs
+  , compileToPEG
+  , compileOneProd
 ) where
 
 import Grammar
@@ -32,7 +38,7 @@ import System.IO.Unsafe
 
 
 tokens :: Grammar -> [Char]
-tokens g = Map.elems g >>= (\e -> e >>= (mapMaybe worker))
+tokens g = Map.elems g >>= (\e -> e >>= mapMaybe worker)
   where
     worker (Chr c) = Just c
     worker _ = Nothing
@@ -150,17 +156,19 @@ equality start l r = combiner (subset start l r) (subset start r l)
     combiner (Right cxs) (Right cxs') = Right (cxs, cxs')
 
 type FuzzConfig = (Int, Int)
+defaultConfig :: FuzzConfig
+defaultConfig = (10000,6)
 type SearchCache = [Int]
 
 fuzzWithConfig :: Grammar -> String -> FuzzConfig -> [String]
-fuzzWithConfig g s (amount, depth) = fuzzDepth g s depth
+fuzzWithConfig g s (amount, depth) = take amount $ fuzzDepth g s depth
 
 readOrd :: String -> Maybe Ordering
 readOrd = read
 
 checkOneProd :: Grammar -> String -> FuzzConfig -> [(Int, String)]
 checkOneProd g start config = let good = fuzzWithConfig g start config in 
-  catMaybes $ map (recogFailPoint g start) good 
+  mapMaybe (recogFailPoint g start) good 
 
 completeProduction :: Grammar -> String -> IO (Maybe Grammar)
 completeProduction g p = let ordW = foldM worker Map.empty (genCounters g) in do
@@ -169,7 +177,7 @@ completeProduction g p = let ordW = foldM worker Map.empty (genCounters g) in do
 
   case out of 
     Just out' -> if null $ genCounters out' then completeProduction out' p else pure $ Just out'
-    Nothing   -> pure $ Nothing
+    Nothing   -> pure Nothing
   
 
   where
@@ -203,3 +211,97 @@ cfg2PEG g completed = if length completed == length (Map.keys g) then pure $ Jus
   where
     nxtProd = head $ Map.keys g \\ completed
 
+
+
+substProd :: Grammar -> String -> Int -> (String, Grammar)
+substProd gram prod idx = (newProd, gram'')
+  where
+    newProd = "_" ++ prod ++ "_" ++ show idx
+    alts = (Map.!) gram prod
+    it = alts !! idx
+    rhs = Var newProd
+    (pref, suf) = splitAt idx alts
+    alts' = pref ++ [[rhs]] ++ drop 1 suf
+    gram' = Map.insert newProd [it] gram
+    gram'' = Map.insert prod alts' gram'
+
+fuzzProd :: Grammar -> String -> Int -> [String]
+fuzzProd gram prod idx = fuzzWithConfig gram' newProd config 
+  where
+    (newProd, gram') = substProd gram prod idx
+    config = (10000, 5)
+
+fuzzAllProds :: Grammar -> Map.Map Sentence [String]
+fuzzAllProds gram = Map.fromList $ map worker confs
+  where
+    confs = [(lhs, (Map.!) gram lhs !! idx, idx) | lhs <- Map.keys gram, idx <- [0..length ((Map.!) gram lhs) - 1]] 
+    worker (prod, sent, idx) = (sent, fuzzProd gram prod idx)
+
+-- convert cx to ordering
+
+mapMaybeWithKey :: (Ord k) => (k -> a -> Maybe b) -> Map.Map k a -> Map.Map k b
+mapMaybeWithKey f mp = Map.foldlWithKey worker Map.empty mp
+  where
+    worker acc l x = case f l x of 
+      Just y -> Map.insert l y acc
+      Nothing -> acc
+
+getCounterExs :: Grammar -> Map.Map Sentence [String] -> Map.Map String [(Sentence, [Sentence])]
+getCounterExs gram spec = Map.mapWithKey worker gram
+  where
+    worker :: String -> [Sentence] -> [(Sentence, [Sentence])]
+    worker lhs alts = catMaybes $ map (\x -> (\(y, i) -> (y, take i alts)) <$> checkAlt lhs x) (zip alts [0..])
+
+    checkAlt :: String -> (Sentence, Int) -> Maybe (Sentence, Int)
+    checkAlt lhs (s, idx) = 
+      if any (not . PEG.matches gram lhs) $ (Map.!) spec s then Just (s, idx) else Nothing
+
+integrateCX :: Grammar -> String -> [(Sentence, [Sentence])] -> Z3 (Maybe Grammar)
+integrateCX gram lhs cxs = do
+  (_, rhs) <- orderAltsMany cxs $ (Map.!) gram lhs 
+  case rhs of 
+    Just rhs' -> pure $ Just $ Map.insert lhs rhs' gram
+    Nothing -> pure Nothing
+
+filterCX :: Map.Map Sentence [String] -> Maybe Grammar -> Maybe Grammar
+filterCX spec = mfilter worker
+  where
+    worker :: Grammar -> Bool
+    worker g = let larms = Map.toList g in 
+       all (checkLarms g) larms
+    checkLarms :: Grammar -> (String, [Sentence]) -> Bool
+    checkLarms g (lhs, alts) = all (all (PEG.matches g lhs) . (Map.!) spec) alts
+
+compileOneProd :: Grammar -> String -> Map.Map Sentence [String] -> [[(Sentence, [Sentence])]] -> Z3 (Maybe Grammar)
+compileOneProd _ _ _ [] = pure Nothing
+compileOneProd gram lhs spec (cand:cxs) = do 
+  it <- integrateCX gram lhs cand 
+  (result, _) <- solverCheckAndGetModel  
+  case result of 
+    Sat -> case filterCX spec it of 
+      Nothing -> case Map.lookup lhs (getCounterExs gram spec) of
+        Nothing   -> compileOneProd gram lhs spec cxs
+        Just cxs' -> compileOneProd gram lhs spec $ cxs ++ [t:cand | t <- cxs'] 
+      Just gram' -> pure $ Just gram'
+    _ -> compileOneProd gram lhs spec cxs
+
+
+-- filter
+compileToPEG :: Grammar -> Z3 (Maybe Grammar)
+compileToPEG gram = worker [[]]
+  where
+    spec = fuzzAllProds gram
+
+
+
+    -- take all the possible counterexamples and iterate until we get an answer
+    worker :: [[(String, [(Sentence, [Sentence])])]] -> Z3 (Maybe Grammar)
+    worker cxss = error "todo"
+      -- gs <- mapM (integrateCX gram 
+    -- worker cxss = case getCounterExs g spec of 
+    --   Just (lhs, it, prefs) -> do 
+    --     (_, x) <- orderAltsMany ((it, prefs):cxs) ((Map.!) g lhs)
+    --     case x of 
+    --       Just rhs' -> worker (Map.insert lhs rhs' g) ((it, prefs):cxs)
+    --       Nothing -> pure $ Right (g, cxs)
+    --   Nothing -> pure $ Right (g, cxs)
