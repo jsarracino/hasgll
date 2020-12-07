@@ -16,14 +16,13 @@ and then the following commands:
 
 ```
 *Main Backend Backend.ANTLR Backend.Earley Backend.GLL Backend.Grampa Backend.PEG FancyInterp Grammar Interpreter Lib Logic Logic.OrderPEG Output.CFG Output.PEG Parser> :module Main
-Prelude Main> :module + Grammar Output.CFG Logic.OrderPEG Z3.Monad
-Prelude Main Grammar Output.CFG Logic.OrderPEG Z3.Monad> import qualified Data.Map.Strict as Map
-Prelude Main Grammar Output.CFG Logic.OrderPEG Z3.Monad Map> pp expr_left
+Prelude Main> :module + Grammar Output.CFG Logic.OrderPEG Z3.Monad Logic
+Prelude Main Grammar Output.CFG Logic.OrderPEG Z3.Monad Map Logic> pp expr_left
 "Expr ::= 1 | 1 + Expr | 1 * Expr"
-Prelude Main Grammar Output.CFG Logic.OrderPEG Z3.Monad Map> order_left
-fromList [([Chr '1'],fromList [([Chr '1',Chr '*',Var "Expr"],Just GT),([Chr '1',Chr '+',Var "Expr"],Just GT)])]
-Prelude Main Grammar Output.CFG Logic.OrderPEG Z3.Monad Map> evalZ3 $ rewriteGram expr_left order_left
-(Sat,Just (fromList [("Expr",[[Chr '1',Chr '+',Var "Expr"],[Chr '1',Chr '*',Var "Expr"],[Chr '1']])]))
-Prelude Main Grammar Output.CFG Logic.OrderPEG Z3.Monad Map> pp $ Map.fromList [("Expr",[[Chr '1',Chr '+',Var "Expr"],[Chr '1',Chr '*',Var "Expr"],[Chr '1']])]
+Prelude Main Grammar Output.CFG Logic.OrderPEG Z3.Monad Logic> spec = fuzzAllProds expr_left
+Prelude Main Grammar Output.CFG Logic.OrderPEG Z3.Monad Logic> spec
+fromList [([Chr '1'],["1"]),([Chr '1',Chr '*',Var "Expr"],["1*1","1*1+1","1*1+1+1","1*1+1+1+1","1*1+1+1+1+1","1*1+1+1*1","1*1+1*1","1*1+1*1+1","1*1*1","1*1*1+1","1*1*1+1+1","1*1*1*1"]),([Chr '1',Chr '+',Var "Expr"],["1+1","1+1+1","1+1+1+1","1+1+1*1","1+1+1*1*1","1+1*1","1+1*1+1","1+1*1+1*1","1+1*1*1","1+1*1*1+1","1+1*1*1*1","1+1*1*1*1*1"])]
+Prelude Main Grammar Output.CFG Logic.OrderPEG Z3.Monad Logic> evalZ3 $ compileOneProd expr_left "Expr" spec [[]]
+Just (fromList [("Expr",[[Chr '1',Chr '+',Var "Expr"],[Chr '1',Chr '*',Var "Expr"],[Chr '1']])])
 ```
 
