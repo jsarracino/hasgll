@@ -7,9 +7,15 @@ import FancyInterp (parses)
 import Backend.Earley
 import Backend.PEG
 import Logic.OrderPEG
+import Logic ( fuzzAllProds, compileOneProd )
+
+-- import qualified Output.PEG as PEGO
+import Output.CFG ()
 
 import qualified Data.Map.Strict as Map
 -- import qualified Data.Set as S
+
+import Z3.Monad ( evalZ3 ) 
 
 expr = program "Expr ::= 1 | Expr + Expr | Expr * Expr"
 
@@ -63,4 +69,10 @@ main :: IO ()
 --   putStrLn $ show $ length parseForest
 --   loopParseFile start gram
 main = do 
-  putStrLn "run me using ghci! this command is currently not supported"
+  putStrLn $ "input CFG: " ++ pp expr_left
+  mg <- evalZ3 $ compileOneProd expr_left "Expr" spec [[]]
+  case mg of 
+    Just g -> putStrLn $ "compiled to: " ++ show g
+    Nothing -> putStrLn "compilation failed :("
+  where
+    spec = fuzzAllProds expr_left

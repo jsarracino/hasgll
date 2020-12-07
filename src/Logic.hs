@@ -184,7 +184,7 @@ completeProduction g p = let ordW = foldM worker Map.empty (genCounters g) in do
     worker :: PickleOrd -> (Int, String) -> IO PickleOrd
     worker ord (fp, cx) = do 
       putStrLn $ "Found failpoint " ++ show fp ++ " on example " ++ show cx 
-      putStrLn $ "Grammar is " ++ pp g
+      -- putStrLn $ "Grammar is " ++ pp g
       putStrLn $ "Please give an ordering for " ++ show lhs ++ " compared to " ++ show rhs
       nxtO <- readOrd <$> getLine
       pure $ Map.insert lhs (Map.insert rhs nxtO rmap) ord
