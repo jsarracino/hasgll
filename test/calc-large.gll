@@ -1,0 +1,25 @@
+Digit ::= 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 0 ; 
+Num ::= Digit | Digit Num; 
+Bool ::= true | false ; 
+Var ::=  x | y | z ; 
+Base ::= Digit | Var | Bool; 
+Expr ::= 
+    Base 
+  | Base + Expr 
+  | Base * Expr 
+  | Base - Expr 
+  | Base / Expr 
+  | \( Expr \) 
+  | Base ++ Expr 
+  | Base ^ Expr 
+  | Base && Expr 
+  | Base >> Expr 
+  | Base << Expr 
+  | if Expr then Expr else Expr
+  | Base > Expr 
+  | Base < Expr 
+  | Base = Expr 
+  | Base != Expr 
+  | Base <= Expr 
+  | Base >= Expr 
+  | Base \| \| Expr

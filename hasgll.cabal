@@ -4,16 +4,16 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: a93c7a087263ac1c78d159d1cb5e1586b26d1f0d0f0a34753bb4c2d06d53535f
+-- hash: 886293636dc37ea2b7af3f96932fd5422188d529262cbdc7f30d8db8b26c1f5d
 
 name:           hasgll
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/hasgll#readme>
-homepage:       https://github.com/githubuser/hasgll#readme
-bug-reports:    https://github.com/githubuser/hasgll/issues
-author:         Author name here
-maintainer:     example@example.com
-copyright:      2020 Author name here
+description:    Please see the README on GitHub at <https://github.com/jsarracino/hasgll#readme>
+homepage:       https://github.com/https://github.com/jsarracino/hasgll#readme
+bug-reports:    https://github.com/https://github.com/jsarracino/hasgll/issues
+author:         John Sarracino
+maintainer:     jsarracino@cornell.edu
+copyright:      2020 John Sarracino
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
@@ -24,7 +24,7 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/githubuser/hasgll
+  location: https://github.com/https://github.com/jsarracino/hasgll
 
 library
   exposed-modules:
@@ -40,6 +40,7 @@ library
       Lib
       Logic
       Logic.OrderPEG
+      Logic.Schedule
       Output.CFG
       Output.PEG
       Parser

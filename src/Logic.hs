@@ -11,7 +11,6 @@ module Logic (
   , fuzzAllProds
   , fuzzProd
   , replaceVarsPEG
-  , cfg2PEG
   , getCounterExs
   , compileToPEG
   , compileOneProd
@@ -19,7 +18,7 @@ module Logic (
 
 import Grammar
 import Backend.Earley ( buildEarley, recognize )
-import Backend.PEG (recogFailPoint)
+-- import Backend.PEG
 import Output.PEG
 import Backend.Grampa
 import qualified Text.Earley as E
@@ -166,53 +165,6 @@ fuzzWithConfig g s (amount, depth) = take amount $ fuzzDepth g s depth
 readOrd :: String -> Maybe Ordering
 readOrd = read
 
-checkOneProd :: Grammar -> String -> FuzzConfig -> [(Int, String)]
-checkOneProd g start config = let good = fuzzWithConfig g start config in 
-  mapMaybe (recogFailPoint g start) good 
-
-completeProduction :: Grammar -> String -> IO (Maybe Grammar)
-completeProduction g p = let ordW = foldM worker Map.empty (genCounters g) in do
-  ord <- ordW
-  (_, out) <- evalZ3 $ rewriteGram g ord
-
-  case out of 
-    Just out' -> if null $ genCounters out' then completeProduction out' p else pure $ Just out'
-    Nothing   -> pure Nothing
-  
-
-  where
-    worker :: PickleOrd -> (Int, String) -> IO PickleOrd
-    worker ord (fp, cx) = do 
-      putStrLn $ "Found failpoint " ++ show fp ++ " on example " ++ show cx 
-      -- putStrLn $ "Grammar is " ++ pp g
-      putStrLn $ "Please give an ordering for " ++ show lhs ++ " compared to " ++ show rhs
-      nxtO <- readOrd <$> getLine
-      pure $ Map.insert lhs (Map.insert rhs nxtO rmap) ord
-
-      where
-
-        lhs = (Map.!) g p !! fp
-        rhs = (Map.!) g p !! (fp + 1)
-        rmap = case Map.lookup lhs ord of
-          Just t -> t
-          Nothing -> Map.empty
-    cnfg = (1000000,4)
-
-    genCounters gram = (nubBy (\l r -> fst l == fst r) $ checkOneProd gram p cnfg)
-
-
-
-cfg2PEG :: Grammar -> [String] -> IO (Maybe Grammar)
-cfg2PEG g completed = if length completed == length (Map.keys g) then pure $ Just g else do 
-  nxtG <- completeProduction g nxtProd
-  case nxtG of 
-    Just g' -> cfg2PEG g' (nxtProd : completed)
-    Nothing -> putStrLn "error: z3 query failed" >> pure Nothing
-  where
-    nxtProd = head $ Map.keys g \\ completed
-
-
-
 substProd :: Grammar -> String -> Int -> (String, Grammar)
 substProd gram prod idx = (newProd, gram'')
   where
@@ -263,14 +215,12 @@ integrateCX gram lhs cxs = do
     Just rhs' -> pure $ Just $ Map.insert lhs rhs' gram
     Nothing -> pure Nothing
 
-filterCX :: Map.Map Sentence [String] -> Maybe Grammar -> Maybe Grammar
-filterCX spec = mfilter worker
+filterCX :: Map.Map Sentence [String] -> String -> Maybe Grammar -> Maybe Grammar
+filterCX spec lhs = mfilter worker
   where
     worker :: Grammar -> Bool
-    worker g = let larms = Map.toList g in 
-       all (checkLarms g) larms
-    checkLarms :: Grammar -> (String, [Sentence]) -> Bool
-    checkLarms g (lhs, alts) = all (all (PEG.matches g lhs) . (Map.!) spec) alts
+    worker g = let alts = (Map.!) g lhs in 
+      all (\alt -> all (PEG.matches g lhs) ((Map.!) spec alt)) alts
 
 compileOneProd :: Grammar -> String -> Map.Map Sentence [String] -> [[(Sentence, [Sentence])]] -> Z3 (Maybe Grammar)
 compileOneProd _ _ _ [] = pure Nothing
@@ -278,7 +228,7 @@ compileOneProd gram lhs spec (cand:cxs) = do
   it <- integrateCX gram lhs cand 
   (result, _) <- solverCheckAndGetModel  
   case result of 
-    Sat -> case filterCX spec it of 
+    Sat -> case filterCX spec lhs it of 
       Nothing -> case Map.lookup lhs (getCounterExs gram spec) of
         Nothing   -> compileOneProd gram lhs spec cxs
         Just cxs' -> compileOneProd gram lhs spec $ cxs ++ [t:cand | t <- cxs'] 

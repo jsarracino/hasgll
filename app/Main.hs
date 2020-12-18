@@ -9,13 +9,18 @@ import Backend.PEG
 import Logic.OrderPEG
 import Logic ( fuzzAllProds, compileOneProd )
 
--- import qualified Output.PEG as PEGO
-import Output.CFG ()
+import qualified Output.PEG as PEGO
+import Output.CFG as CFGO
 
 import qualified Data.Map.Strict as Map
 -- import qualified Data.Set as S
 
-import Z3.Monad ( evalZ3 ) 
+import Z3.Monad ( evalZ3, Z3) 
+
+import Logic.Schedule 
+
+import Control.Monad
+import System.Environment
 
 expr = program "Expr ::= 1 | Expr + Expr | Expr * Expr"
 
@@ -23,6 +28,7 @@ expr_left = program "Expr ::= 1 | 1 + Expr | 1 * Expr "
 expr_left_one = program "Expr ::= 1 + Expr | 1 | 1 * Expr "
 expr_left_peg = program "Expr ::= 1 + Expr |  1 * Expr | 1 "
 
+conditional_var = program "Base ::= 1 ; Expr ::= Base | if Expr then Expr | if Expr then Expr else Expr"
 
 
 expr_parens = program "Expr ::= 1 | Expr + Expr | Expr * Expr | \\( Expr \\)"
@@ -41,6 +47,24 @@ order_left = Map.fromList [(sentence "1", Map.fromList [(sentence "1 + Expr", Ju
 --   putStrLn "input string to parse (control-C to quit)"
 --   loopParse start (program gram)
 
+gramToPeg :: Grammar -> Z3 (Either Grammar String)
+gramToPeg gram = do 
+  sched <- scheduleGram gram
+  case sched of 
+    Just lhss -> foldM (worker lhss) (Left gram) lhss
+    Nothing -> pure $ Right "Couldn't make a dataflow ordering for the grammar"
+
+  where
+    spec = fuzzAllProds gram
+
+    worker :: [String] -> Either Grammar String -> String -> Z3 (Either Grammar String)
+    worker sched (Left g) s = do 
+      g' <- compileOneProd g s spec [[]]
+      case g' of 
+        Just g'' -> pure $ Left g''
+        Nothing -> pure $ Right $ "Failed compiling production: " ++ s ++ " with sched: " ++ show sched
+    worker _ x@Right{} _ = pure x
+
 
 loopParse :: String -> Grammar -> IO ()
 loopParse start gram = do 
@@ -51,28 +75,18 @@ loopParse start gram = do
 fromFile :: FilePath -> IO Grammar
 fromFile pth = program <$> readFile pth 
 
-main :: IO ()
--- main = do 
---   putStrLn "input grammar file:"
---   gramf <- getLine
---   gram <- fromFile gramf
---   -- putStrLn $ "grammar is " ++ (pp . program) gram
---   putStrLn "input starting production:"
---   start <- getLine
---   putStrLn "input filepath to parse (control-C to quit)"
---   loopParseFile start gram
+readWritePEG :: String -> String -> IO ()
+readWritePEG inp out = do 
+  gram <- program <$> readFile inp
+  putStrLn $ "Loaded CFG: " ++ pp gram
+  pegOrError <- evalZ3 (gramToPeg gram)
+  case pegOrError of 
+    Left g' -> let pego = PEGO.pp g' in do putStrLn ("Generated PEG: " ++ pego) ; writeFile out pego
+    Right msg -> putStrLn $ "encountered error: " ++ msg
 
--- loopParseFile :: String -> Grammar -> IO ()
--- loopParseFile start gram = do 
---   str <- getLine
---   parseForest <- (parses start gram) <$> readFile str
---   putStrLn $ show $ length parseForest
---   loopParseFile start gram
+main :: IO ()
 main = do 
-  putStrLn $ "input CFG: " ++ pp expr_left
-  mg <- evalZ3 $ compileOneProd expr_left "Expr" spec [[]]
-  case mg of 
-    Just g -> putStrLn $ "compiled to: " ++ show g
-    Nothing -> putStrLn "compilation failed :("
-  where
-    spec = fuzzAllProds expr_left
+  args <- getArgs
+  case args of 
+    inputName : outputName : _ -> readWritePEG inputName outputName
+    _ -> putStrLn $ "error, missing input and output file name"
