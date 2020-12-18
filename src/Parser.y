@@ -54,13 +54,13 @@ data Token =
 
 lexer :: String -> [Token]
 lexer [] = []
+lexer ('\\':'e':cs) = TokenEps : lexer cs
 lexer ('\\':c:cs) = TokenChar c : lexer cs
 lexer (':':':':'=':cs) = TokenDef : lexer cs
 lexer ('|':cs) = TokenAlt : lexer cs
 lexer ('(':cs) = TokenLP : lexer cs
 lexer (')':cs) = TokenRP : lexer cs
 lexer (';':cs) = TokenSemi : lexer cs
-lexer ('\\':'e':cs) = TokenEps : lexer cs
 lexer (c:cs) 
   | isSpace c = lexer cs
   | isUpper c = lexVar (c:cs)

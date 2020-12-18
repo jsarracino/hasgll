@@ -13,7 +13,7 @@ To build: `stack build`.
 
 To run: `stack run -- <input-filename> <output-filename>`. There are several test files in test, which end in .gll.
 The current passing tests are `calc-medium.gll` and `calc-large.gll`. 
-`calc.gll`, `cond-small.gll`, `antlr-DGSParser.gll` currently do not work.
+`calc.gll`, `cycle.gll`, `cond-small.gll`, `antlr-DGSParser.gll` currently do not work.
 
 For example:
 
