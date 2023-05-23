@@ -12,7 +12,6 @@ module Logic (
   , fuzzProd
   , replaceVarsPEG
   , getCounterExs
-  , compileToPEG
   , compileOneProd
 ) where
 
@@ -234,10 +233,3 @@ compileOneProd gram lhs spec (cand:cxs) = do
         Just cxs' -> compileOneProd gram lhs spec $ cxs ++ [t:cand | t <- cxs'] 
       Just gram' -> pure $ Just gram'
     _ -> compileOneProd gram lhs spec cxs
-
-
--- filter
-compileToPEG :: Grammar -> Z3 (Maybe Grammar)
-compileToPEG gram = worker [[]]
-  where
-    spec = fuzzAllProds gram
