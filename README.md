@@ -1,5 +1,13 @@
 # hasgll
-A translater from GLL grammars to PEG grammers. 
+A semantics-preserving translater from GLL grammars to PEG grammers. PEG grammars are efficient but have unintuitive semantics due to their *ordered choice* operator, which restricts parser backtracking. 
+This tool treats a GLL grammar as a *ground truth* for a PEG grammar. 
+The key idea for translation is to replace GLL alternation with PEG ordered choice and reorder PEG terms
+when there are *conflicts* (i.e. a subset relation) between the underlying PEG grammars. 
+
+To check for grammar subsets, we "fuzz" by enumerating strings and checking for membership (see src/Logic.hs:subset).
+
+Then, to build a conflict-free PEG grammar, we *linearize* the alternation by building a set of *ordering constraints* 
+and using an SMT solver to convert the constraints into a total order (if it exists): see src/Logic.hs:compileOneProd.
 
 ## Dependencies
 `hasgll` depends on `stack`, `happy`, and `Z3`, For `happy`, it needs an invocation of `stack install happy` to add
