@@ -241,17 +241,3 @@ compileToPEG :: Grammar -> Z3 (Maybe Grammar)
 compileToPEG gram = worker [[]]
   where
     spec = fuzzAllProds gram
-
-
-
-    -- take all the possible counterexamples and iterate until we get an answer
-    worker :: [[(String, [(Sentence, [Sentence])])]] -> Z3 (Maybe Grammar)
-    worker cxss = error "todo"
-      -- gs <- mapM (integrateCX gram 
-    -- worker cxss = case getCounterExs g spec of 
-    --   Just (lhs, it, prefs) -> do 
-    --     (_, x) <- orderAltsMany ((it, prefs):cxs) ((Map.!) g lhs)
-    --     case x of 
-    --       Just rhs' -> worker (Map.insert lhs rhs' g) ((it, prefs):cxs)
-    --       Nothing -> pure $ Right (g, cxs)
-    --   Nothing -> pure $ Right (g, cxs)
